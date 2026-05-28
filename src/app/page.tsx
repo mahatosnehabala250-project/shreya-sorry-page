@@ -13,21 +13,7 @@ const sorryMessages = [
   "Dil Se Sorry Shreya! 💖",
 ]
 
-const noBtnLabels = [
-  "Nahi Maf Karunga! 😤",
-  "Pakdi? Pakad Ke Dikhao! 😏",
-  "Ha Ha Nahi! 🏃‍♂️",
-  "Pakad Nahi Paya! 😝",
-  "Chor De Mujhe! 🏃💨",
-  "NOT! 🤣",
-  "Bhag Bhag Bhag! 🏃‍♂️💨",
-  "Kabhi Nahi Pakad Payegi! 😎",
-  "Mujhe Mat Pakad! 😱",
-  "Hehe Bhag! 🏃",
-  "Slow Ho Tum! 🐌",
-  "Thoda Aur Try Kar! 😜",
-  "Bye Bye! 👋🏃‍♂️",
-]
+// Text always stays "Nahi Maf Karunga!" - never changes
 
 const praiseMessages = [
   "Tum Itni Achi Ho Ki Dil Khush Ho Gaya! 🌸",
@@ -42,7 +28,7 @@ export default function Home() {
   const [showConfetti, setShowConfetti] = useState(false)
   const [showFireworks, setShowFireworks] = useState(false)
   const [hearts, setHearts] = useState<{ id: number; x: number; y: number; emoji: string }[]>([])
-  const [noBtnLabel, setNoBtnLabel] = useState("Nahi Maf Karunga! 😤")
+  const NO_BTN_TEXT = "Nahi Maf Karunga! 😤"
   const [messageIndex, setMessageIndex] = useState(0)
   const [praiseIndex, setPraiseIndex] = useState(0)
   const [attemptCount, setAttemptCount] = useState(0)
@@ -88,7 +74,6 @@ export default function Home() {
     const newX = Math.random() * maxX
     const newY = Math.random() * maxY
     setBtnTranslate({ x: newX, y: newY })
-    setNoBtnLabel(noBtnLabels[Math.floor(Math.random() * noBtnLabels.length)])
   }, [attemptCount])
 
   const createEmoji = useCallback((x: number, y: number, emoji?: string) => {
@@ -104,7 +89,6 @@ export default function Home() {
       setShakeScreen(true)
       setTimeout(() => setShakeScreen(false), 400)
       setTimeout(() => moveBtnRandom(), 50)
-      setNoBtnLabel("Aha! Ab Pakad Ke Dikhao! 😏🏃‍♂️")
       setAttemptCount(1)
       setTouchedNoBtn(true)
     }
@@ -418,7 +402,7 @@ export default function Home() {
             }}
           >
             <span className={`flex items-center gap-1 bg-gradient-to-r ${btnColors[btnColorIndex]} px-3 py-2 rounded-xl shadow-md`}>
-              {noBtnLabel}
+              {NO_BTN_TEXT}
             </span>
           </motion.button>
 
