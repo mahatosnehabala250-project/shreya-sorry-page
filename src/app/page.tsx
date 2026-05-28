@@ -17,15 +17,13 @@ const noBtnLabels = [
   "Nahi Maf Karunga! 😤",
   "Pakdi? Pakad Ke Dikhao! 😏",
   "Ha Ha Nahi! 🏃‍♂️",
-  "Idhar Udhar Mat Bhago! 😅",
   "Pakad Nahi Paya! 😝",
   "Chor De Mujhe! 🏃💨",
   "Wapas Aa Raha Hu... NOT! 🤣",
-  "Maaf Kar De Yaar! 🥺",
   "Main Bhagta Rahoonga! 🏃‍♂️💨",
   "Tu Mujhe Kabhi Nahi Pakad Payegi! 😎",
-  "Hehe Bhai Bhag! 🏃",
   "Mujhe Mat Pakad! 😱",
+  "Hehe Bhag! 🏃",
 ]
 
 const praiseMessages = [
@@ -34,7 +32,6 @@ const praiseMessages = [
   "World's Most Kindest Person = Shreya! 🏆",
   "Tumhari Smile Sabse Pyari Hai! 😊",
   "Shreya Tum Ek Angel Ho! 😇",
-  "Har Din Tumhe Thanks Ki Main Maaf Karo! 🙏",
 ]
 
 export default function Home() {
@@ -47,10 +44,11 @@ export default function Home() {
   const [praiseIndex, setPraiseIndex] = useState(0)
   const [attemptCount, setAttemptCount] = useState(0)
   const [isButtonActivated, setIsButtonActivated] = useState(false)
-  const [noBtnPos, setNoBtnPos] = useState({ x: 0, y: 0 })
+  const [roamPos, setRoamPos] = useState({ x: 50, y: 50 }) // percentage within roam zone
   const [screenSize, setScreenSize] = useState({ w: 0, h: 0 })
 
   const containerRef = useRef<HTMLDivElement>(null)
+  const roamZoneRef = useRef<HTMLDivElement>(null)
   const heartIdRef = useRef(0)
 
   // Get screen size
@@ -63,35 +61,20 @@ export default function Home() {
     return () => window.removeEventListener('resize', updateSize)
   }, [])
 
-  // Helper: get random position within screen for the runaway button
-  // Avoids: top area (image + sorry text) AND bottom area (Maf Kar Diya button)
-  const getRandomPos = useCallback(() => {
-    const pad = 20
-    const btnW = 200
-    const btnH = 50
-    // Top 42% reserved for image + sorry message
-    const minY = screenSize.h * 0.42
-    // Bottom 130px reserved for Maf Kar Diya button + spacing
-    const maxY = screenSize.h - 130
-    const maxX = screenSize.w - btnW - pad
-
-    // Safety: if screen too small, at least give some space
-    const safeMinY = Math.min(minY, screenSize.h * 0.35)
-    const safeMaxY = Math.max(maxY, screenSize.h * 0.55)
-
+  // Move button to random position WITHIN the roam zone (percentage based)
+  const getRandomRoamPos = useCallback(() => {
     return {
-      x: pad + Math.random() * Math.max(maxX - pad, 30),
-      y: safeMinY + Math.random() * Math.max(safeMaxY - safeMinY, 30),
+      x: 5 + Math.random() * 60,  // 5% to 65% from left
+      y: 10 + Math.random() * 70,  // 10% to 80% from top of zone
     }
-  }, [screenSize])
+  }, [])
 
   // Create floating emoji
   const createEmoji = useCallback((x: number, y: number, emoji?: string) => {
     const id = heartIdRef.current++
     const emojis = ['💕', '💖', '🌸', '✨', '🦋', '🌹', '💗', '💝', '🥰', '😇', '🎊', '🎆']
     setHearts(prev => [...prev, {
-      id,
-      x, y,
+      id, x, y,
       emoji: emoji || emojis[Math.floor(Math.random() * emojis.length)]
     }])
     setTimeout(() => {
@@ -99,15 +82,15 @@ export default function Home() {
     }, 2500)
   }, [])
 
-  // Activate the runaway button on first touch/click attempt
+  // Activate the runaway button on first touch/click
   const handleNoButtonFirstTouch = useCallback(() => {
     if (!isButtonActivated) {
       setIsButtonActivated(true)
-      setNoBtnPos(getRandomPos())
+      setRoamPos(getRandomRoamPos())
       setNoBtnLabel("Aha! Ab Pakad Ke Dikhao! 😏🏃‍♂️")
       setAttemptCount(1)
     }
-  }, [isButtonActivated, getRandomPos])
+  }, [isButtonActivated, getRandomRoamPos])
 
   // Handle "Maf Kar Diya" - INSTANT CELEBRATION!
   const handleForgive = useCallback(() => {
@@ -115,32 +98,21 @@ export default function Home() {
     setShowConfetti(true)
     setShowFireworks(true)
 
-    // Massive emoji burst
     for (let i = 0; i < 25; i++) {
       setTimeout(() => {
-        createEmoji(
-          Math.random() * screenSize.w,
-          Math.random() * screenSize.h
-        )
+        createEmoji(Math.random() * screenSize.w, Math.random() * screenSize.h)
       }, i * 80)
     }
 
-    // Cycle praise messages
     let pIdx = 0
     const praiseInterval = setInterval(() => {
       pIdx = (pIdx + 1) % praiseMessages.length
       setPraiseIndex(pIdx)
     }, 3000)
 
-    // Stop effects
-    setTimeout(() => {
-      setShowConfetti(false)
-      setShowFireworks(false)
-    }, 10000)
-
+    setTimeout(() => { setShowConfetti(false); setShowFireworks(false) }, 10000)
     setTimeout(() => clearInterval(praiseInterval), 30000)
 
-    // Periodic emoji rain
     const emojiRain = setInterval(() => {
       for (let i = 0; i < 3; i++) {
         createEmoji(Math.random() * screenSize.w, -20)
@@ -161,7 +133,6 @@ export default function Home() {
     isCircle: Math.random() > 0.5,
   }))
 
-  // Firework positions
   const fireworkPositions = [
     { x: 15, y: 20 }, { x: 50, y: 10 }, { x: 85, y: 18 },
     { x: 30, y: 30 }, { x: 70, y: 25 },
@@ -179,32 +150,19 @@ export default function Home() {
       }}
     >
       {/* Background floating elements */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {Array.from({ length: 12 }).map((_, i) => (
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        {Array.from({ length: 10 }).map((_, i) => (
           <motion.div
             key={i}
             className="absolute"
-            initial={{
-              x: Math.random() * screenSize.w,
-              y: -50,
-              scale: 0.3 + Math.random() * 0.6,
-            }}
-            animate={{
-              y: screenSize.h + 100,
-              rotate: 360,
-              x: (i % 2 === 0 ? 1 : -1) * (30 + Math.random() * 60),
-            }}
-            transition={{
-              duration: 10 + Math.random() * 12,
-              repeat: Infinity,
-              delay: Math.random() * 6,
-              ease: 'linear',
-            }}
+            initial={{ x: Math.random() * screenSize.w, y: -50, scale: 0.3 + Math.random() * 0.5 }}
+            animate={{ y: screenSize.h + 100, rotate: 360, x: (i % 2 === 0 ? 1 : -1) * 30 }}
+            transition={{ duration: 12 + Math.random() * 10, repeat: Infinity, delay: Math.random() * 6, ease: 'linear' }}
           >
             {i % 2 === 0 ? (
-              <Heart className="w-5 h-5 text-pink-200/20 fill-pink-200/20" />
+              <Heart className="w-4 h-4 text-pink-200/15 fill-pink-200/15" />
             ) : (
-              <span className="text-base opacity-20">✨</span>
+              <span className="text-sm opacity-15">✨</span>
             )}
           </motion.div>
         ))}
@@ -227,10 +185,7 @@ export default function Home() {
                   key={j}
                   className="absolute w-2 h-2 rounded-full"
                   style={{ backgroundColor: confettiColors[(idx + j) % confettiColors.length] }}
-                  animate={{
-                    x: Math.cos((j / 8) * Math.PI * 2) * 50,
-                    y: Math.sin((j / 8) * Math.PI * 2) * 50,
-                  }}
+                  animate={{ x: Math.cos((j / 8) * Math.PI * 2) * 50, y: Math.sin((j / 8) * Math.PI * 2) * 50 }}
                   transition={{ duration: 1, delay: idx * 0.3 }}
                 />
               ))}
@@ -269,21 +224,18 @@ export default function Home() {
               borderRadius: p.isCircle ? '50%' : '2px',
             }}
             initial={{ y: -30, opacity: 1, rotate: 0 }}
-            animate={{
-              y: screenSize.h + 80,
-              opacity: [1, 1, 0.5, 0],
-              rotate: 720 * (Math.random() > 0.5 ? 1 : -1),
-              x: (Math.random() - 0.5) * 250,
-            }}
+            animate={{ y: screenSize.h + 80, opacity: [1, 1, 0.5, 0], rotate: 720 * (Math.random() > 0.5 ? 1 : -1), x: (Math.random() - 0.5) * 200 }}
             transition={{ duration: p.duration, delay: p.delay, ease: 'easeIn' }}
           />
         ))}
       </AnimatePresence>
 
-      {/* ========== MAIN CONTENT ========== */}
-      <div className="relative z-30 flex flex-col items-center justify-center flex-1 px-5 py-6">
+      {/* ========== TOP ZONE: Image + Sorry Text ========== */}
+      <div className="relative z-30 flex flex-col items-center px-5 pt-8 pb-3"
+        style={{ background: 'linear-gradient(to bottom, rgba(255,245,245,0.9) 0%, rgba(255,224,230,0.6) 80%, transparent 100%)' }}
+      >
         {/* Image */}
-        <motion.div className="relative mb-4" animate={forgiven ? { scale: [1, 1.12, 1] } : {}}>
+        <motion.div className="relative mb-3" animate={forgiven ? { scale: [1, 1.12, 1] } : {}}>
           <motion.div
             animate={!forgiven ? { y: [0, -8, 0] } : {}}
             transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
@@ -326,7 +278,7 @@ export default function Home() {
         <AnimatePresence mode="wait">
           <motion.h1
             key={forgiven ? 'forgiven' : messageIndex}
-            className="text-xl font-extrabold text-center text-rose-700 leading-tight mb-2"
+            className="text-xl font-extrabold text-center text-rose-700 leading-tight mb-1"
             initial={{ opacity: 0, y: 15, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -15, scale: 0.9 }}
@@ -338,11 +290,7 @@ export default function Home() {
 
         {/* Sub message */}
         {!forgiven && (
-          <motion.p
-            className="text-rose-600/70 text-center text-sm mb-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
+          <motion.p className="text-rose-600/70 text-center text-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             Dil se sorry Shreya! Mujhe maaf kar do 🙏💕
           </motion.p>
         )}
@@ -351,7 +299,7 @@ export default function Home() {
         {!forgiven && isButtonActivated && attemptCount > 0 && (
           <motion.div
             key={attemptCount}
-            className="relative z-40 bg-white/30 backdrop-blur-sm rounded-full px-3 py-1.5 mb-3"
+            className="bg-white/40 backdrop-blur-sm rounded-full px-3 py-1.5 mt-2"
             initial={{ scale: 1.3, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
           >
@@ -367,10 +315,10 @@ export default function Home() {
           </motion.div>
         )}
 
-        {/* ====== FORGIVEN CELEBRATION ====== */}
+        {/* FORGIVEN CELEBRATION */}
         {forgiven && (
           <motion.div
-            className="flex flex-col items-center gap-3"
+            className="flex flex-col items-center gap-3 mt-2"
             initial={{ opacity: 0, scale: 0.3 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: 'spring', stiffness: 150, damping: 12 }}
@@ -382,7 +330,6 @@ export default function Home() {
             >
               🎉
             </motion.div>
-
             <AnimatePresence mode="wait">
               <motion.p
                 key={praiseIndex}
@@ -395,14 +342,7 @@ export default function Home() {
                 {praiseMessages[praiseIndex]}
               </motion.p>
             </AnimatePresence>
-
-            {/* Bouncing emoji */}
-            <motion.div
-              className="flex gap-2 mt-1"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-            >
+            <motion.div className="flex gap-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
               {['🥰', '💕', '👑', '💖', '🦋', '🌹', '✨'].map((emoji, i) => (
                 <motion.span
                   key={i}
@@ -414,10 +354,8 @@ export default function Home() {
                 </motion.span>
               ))}
             </motion.div>
-
-            {/* Love Letter */}
             <motion.div
-              className="mt-3 bg-white/40 backdrop-blur-md rounded-2xl p-4 max-w-xs w-full border border-white/50 shadow-xl"
+              className="bg-white/40 backdrop-blur-md rounded-2xl p-4 max-w-xs w-full border border-white/50 shadow-xl"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.6 }}
@@ -435,155 +373,150 @@ export default function Home() {
                 Forever grateful, 🙏💖
               </p>
             </motion.div>
-
             <motion.button
               onClick={(e) => {
                 for (let i = 0; i < 8; i++) {
                   setTimeout(() => {
-                    createEmoji(
-                      e.clientX + (Math.random() - 0.5) * 150,
-                      e.clientY + (Math.random() - 0.5) * 150
-                    )
+                    createEmoji(e.clientX + (Math.random() - 0.5) * 150, e.clientY + (Math.random() - 0.5) * 150)
                   }, i * 50)
                 }
               }}
-              className="mt-2 px-5 py-2.5 bg-white/30 backdrop-blur-sm rounded-full text-rose-700 font-semibold text-sm hover:bg-white/50 transition-all cursor-pointer border border-white/40"
+              className="px-5 py-2.5 bg-white/30 backdrop-blur-sm rounded-full text-rose-700 font-semibold text-sm cursor-pointer border border-white/40"
               whileTap={{ scale: 0.9 }}
             >
               More Love 💕
             </motion.button>
           </motion.div>
         )}
-
-        {/* ====== BUTTONS (Not Forgiven) ====== */}
-        {!forgiven && !isButtonActivated && (
-          <motion.div
-            className="flex flex-col items-center gap-3 w-full mt-2"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            {/* Maf Kar Diya */}
-            <motion.button
-              onClick={handleForgive}
-              className="w-full max-w-xs px-6 py-4 bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 text-white font-extrabold text-lg rounded-2xl shadow-xl shadow-pink-500/30 cursor-pointer relative overflow-hidden"
-              whileTap={{ scale: 0.92 }}
-            >
-              <span className="flex items-center justify-center gap-2 relative z-10">
-                <Heart className="w-5 h-5 fill-white" />
-                Maf Kar Diya 💕
-              </span>
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                animate={{ x: ['-100%', '200%'] }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-              />
-            </motion.button>
-
-            {/* Nahi Maf Karunga - STEADY, below Maf Kar Diya */}
-            <button
-              onClick={handleNoButtonFirstTouch}
-              onTouchStart={(e) => {
-                e.preventDefault()
-                handleNoButtonFirstTouch()
-              }}
-              className="w-full max-w-xs px-6 py-4 bg-gradient-to-r from-gray-400 to-gray-500 text-white font-bold text-lg rounded-2xl shadow-lg cursor-pointer select-none"
-            >
-              Nahi Maf Karunga! 😤
-            </button>
-          </motion.div>
-        )}
-
-        {/* Hint when buttons are steady */}
-        {!forgiven && !isButtonActivated && (
-          <motion.p
-            className="text-rose-400/50 text-xs text-center mt-3"
-            animate={{ opacity: [0.3, 0.7, 0.3] }}
-            transition={{ duration: 3, repeat: Infinity }}
-          >
-            Ek option choose karo... 😏
-          </motion.p>
-        )}
       </div>
 
-      {/* ====== RUNAWAY BUTTON (after activation) ====== */}
+      {/* ========== MIDDLE ZONE: Runaway Button Roams Here ========== */}
       {!forgiven && isButtonActivated && (
-        <motion.button
-          className="fixed z-20 px-4 py-3 bg-gradient-to-r from-gray-500 to-gray-600 text-white font-bold text-sm rounded-2xl shadow-xl cursor-pointer select-none whitespace-nowrap border border-gray-400/50"
-          animate={{
-            left: noBtnPos.x,
-            top: noBtnPos.y,
-            rotate: (Math.random() - 0.5) * 20,
-          }}
-          transition={{
-            type: 'spring',
-            stiffness: 400,
-            damping: 25,
-          }}
-          onClick={(e) => {
-            e.preventDefault()
-            setNoBtnPos(getRandomPos())
-            setNoBtnLabel("HAHA! Pakad Nahi Paya! 😂🏃‍♂️💨")
-            setAttemptCount(prev => prev + 2)
-            setMessageIndex(prev => Math.min(prev + 1, sorryMessages.length - 1))
-            createEmoji(e.clientX, e.clientY, '🏃‍♂️')
-          }}
-          onTouchStart={(e) => {
-            e.preventDefault()
-            setNoBtnPos(getRandomPos())
-            setNoBtnLabel(noBtnLabels[Math.floor(Math.random() * noBtnLabels.length)])
-            setAttemptCount(prev => prev + 1)
-            setMessageIndex(prev => Math.min(prev + 1, sorryMessages.length - 1))
-          }}
-        >
-          <span className="flex items-center gap-1">
-            {noBtnLabel}
-          </span>
-          {/* Speed trails */}
-          <motion.div
-            className="absolute -right-1 -top-1 w-2 h-2 bg-red-400 rounded-full"
-            animate={{ scale: [0, 1, 0], opacity: [1, 0.5, 0] }}
-            transition={{ duration: 0.4, repeat: Infinity }}
-          />
-          <motion.div
-            className="absolute -left-1 -bottom-1 w-2 h-2 bg-orange-400 rounded-full"
-            animate={{ scale: [0, 1, 0], opacity: [1, 0.5, 0] }}
-            transition={{ duration: 0.4, repeat: Infinity, delay: 0.2 }}
-          />
-        </motion.button>
-      )}
-
-      {/* Maf Kar Diya button remains accessible even after no button activated */}
-      {!forgiven && isButtonActivated && (
-        <motion.div
-          className="fixed bottom-0 left-0 right-0 z-40 flex justify-center pb-6 pt-4"
-          style={{ background: 'linear-gradient(to top, rgba(255,117,143,0.95) 0%, rgba(255,117,143,0.8) 60%, transparent 100%)' }}
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+        <div
+          ref={roamZoneRef}
+          className="relative z-10 flex-1 min-h-[180px]"
         >
           <motion.button
-            onClick={handleForgive}
-            className="px-8 py-4 bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 text-white font-extrabold text-lg rounded-2xl shadow-2xl shadow-pink-500/40 cursor-pointer relative overflow-hidden"
-            whileTap={{ scale: 0.92 }}
-            animate={{ scale: [1, 1.05, 1] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
+            className="absolute px-3 py-2.5 bg-gradient-to-r from-gray-500 to-gray-600 text-white font-bold text-xs rounded-2xl shadow-xl cursor-pointer select-none whitespace-nowrap border border-gray-400/50"
+            style={{ touchAction: 'none' }}
+            animate={{
+              left: `${roamPos.x}%`,
+              top: `${roamPos.y}%`,
+            }}
+            transition={{
+              type: 'spring',
+              stiffness: 350,
+              damping: 22,
+            }}
+            onClick={(e) => {
+              e.preventDefault()
+              setRoamPos(getRandomRoamPos())
+              setNoBtnLabel("HAHA! Pakad Nahi Paya! 😂🏃‍♂️💨")
+              setAttemptCount(prev => prev + 2)
+              setMessageIndex(prev => Math.min(prev + 1, sorryMessages.length - 1))
+              createEmoji(e.clientX, e.clientY, '🏃‍♂️')
+            }}
+            onTouchStart={(e) => {
+              e.preventDefault()
+              setRoamPos(getRandomRoamPos())
+              setNoBtnLabel(noBtnLabels[Math.floor(Math.random() * noBtnLabels.length)])
+              setAttemptCount(prev => prev + 1)
+              setMessageIndex(prev => Math.min(prev + 1, sorryMessages.length - 1))
+            }}
           >
-            <span className="flex items-center justify-center gap-2 relative z-10">
-              <Heart className="w-5 h-5 fill-white" />
-              Maf Kar Diya 💕
-            </span>
+            <span className="flex items-center gap-1">{noBtnLabel}</span>
             <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent"
-              animate={{ x: ['-100%', '200%'] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+              className="absolute -right-1 -top-1 w-2 h-2 bg-red-400 rounded-full"
+              animate={{ scale: [0, 1, 0], opacity: [1, 0.5, 0] }}
+              transition={{ duration: 0.4, repeat: Infinity }}
+            />
+            <motion.div
+              className="absolute -left-1 -bottom-1 w-2 h-2 bg-orange-400 rounded-full"
+              animate={{ scale: [0, 1, 0], opacity: [1, 0.5, 0] }}
+              transition={{ duration: 0.4, repeat: Infinity, delay: 0.2 }}
             />
           </motion.button>
-        </motion.div>
+        </div>
+      )}
+
+      {/* ========== BOTTOM ZONE: Maf Kar Diya Button ========== */}
+      {!forgiven && (
+        <div
+          className="relative z-30 px-5 pb-6 pt-3"
+          style={{ background: 'linear-gradient(to top, rgba(255,117,143,0.85) 0%, rgba(255,181,193,0.5) 70%, transparent 100%)' }}
+        >
+          {/* Before activation - both buttons */}
+          {!isButtonActivated && (
+            <motion.div
+              className="flex flex-col items-center gap-3 w-full"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <motion.button
+                onClick={handleForgive}
+                className="w-full max-w-xs px-6 py-4 bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 text-white font-extrabold text-lg rounded-2xl shadow-xl shadow-pink-500/30 cursor-pointer relative overflow-hidden"
+                whileTap={{ scale: 0.92 }}
+              >
+                <span className="flex items-center justify-center gap-2 relative z-10">
+                  <Heart className="w-5 h-5 fill-white" />
+                  Maf Kar Diya 💕
+                </span>
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                  animate={{ x: ['-100%', '200%'] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                />
+              </motion.button>
+              <button
+                onClick={handleNoButtonFirstTouch}
+                onTouchStart={(e) => { e.preventDefault(); handleNoButtonFirstTouch() }}
+                className="w-full max-w-xs px-6 py-4 bg-gradient-to-r from-gray-400 to-gray-500 text-white font-bold text-lg rounded-2xl shadow-lg cursor-pointer select-none"
+              >
+                Nahi Maf Karunga! 😤
+              </button>
+              <motion.p
+                className="text-rose-400/50 text-xs text-center"
+                animate={{ opacity: [0.3, 0.7, 0.3] }}
+                transition={{ duration: 3, repeat: Infinity }}
+              >
+                Ek option choose karo... 😏
+              </motion.p>
+            </motion.div>
+          )}
+
+          {/* After activation - only Maf Kar Diya */}
+          {isButtonActivated && (
+            <motion.div
+              className="flex flex-col items-center"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <motion.button
+                onClick={handleForgive}
+                className="w-full max-w-xs px-6 py-4 bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 text-white font-extrabold text-lg rounded-2xl shadow-2xl shadow-pink-500/40 cursor-pointer relative overflow-hidden"
+                whileTap={{ scale: 0.92 }}
+                animate={{ scale: [1, 1.04, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                <span className="flex items-center justify-center gap-2 relative z-10">
+                  <Heart className="w-5 h-5 fill-white" />
+                  Maf Kar Diya 💕
+                </span>
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent"
+                  animate={{ x: ['-100%', '200%'] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                />
+              </motion.button>
+            </motion.div>
+          )}
+        </div>
       )}
 
       {/* Footer */}
-      <footer className="pb-4 pt-2 text-center w-full relative z-10">
+      <footer className="pb-3 pt-1 text-center w-full relative z-10">
         <p className="text-rose-400/40 text-xs">
           Made with 💕 for Shreya
         </p>
