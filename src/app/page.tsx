@@ -52,7 +52,6 @@ export default function Home() {
 
   const containerRef = useRef<HTMLDivElement>(null)
   const heartIdRef = useRef(0)
-  const wanderTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Get screen size
   useEffect(() => {
@@ -64,91 +63,16 @@ export default function Home() {
     return () => window.removeEventListener('resize', updateSize)
   }, [])
 
-  // Infinite wandering after activation
-  useEffect(() => {
-    if (!isButtonActivated || forgiven) return
-
-    const wander = () => {
-      const btnW = 180
-      const btnH = 50
-      const pad = 10
-      const maxX = screenSize.w - btnW - pad
-      const maxY = screenSize.h - btnH - pad
-
-      const newX = pad + Math.random() * maxX
-      const newY = pad + Math.random() * maxY
-
-      setNoBtnPos({ x: newX, y: newY })
-      setNoBtnLabel(noBtnLabels[Math.floor(Math.random() * noBtnLabels.length)])
-
-      const nextDelay = 800 + Math.random() * 1200
-      wanderTimeoutRef.current = setTimeout(wander, nextDelay)
+  // Helper: get random position within screen for the runaway button
+  const getRandomPos = useCallback(() => {
+    const pad = 15
+    const maxX = screenSize.w - 200
+    const maxY = screenSize.h - 70
+    return {
+      x: pad + Math.random() * Math.max(maxX - pad, 50),
+      y: pad + Math.random() * Math.max(maxY - pad, 50),
     }
-
-    wander()
-
-    return () => {
-      if (wanderTimeoutRef.current) clearTimeout(wanderTimeoutRef.current)
-    }
-  }, [isButtonActivated, forgiven, screenSize])
-
-  // Touch/mouse proximity tracking for the runaway button
-  useEffect(() => {
-    if (!isButtonActivated || forgiven) return
-
-    const handlePointer = (clientX: number, clientY: number) => {
-      const btnW = 180
-      const btnH = 50
-      const btnCenterX = noBtnPos.x + btnW / 2
-      const btnCenterY = noBtnPos.y + btnH / 2
-
-      const distance = Math.sqrt(
-        Math.pow(clientX - btnCenterX, 2) + Math.pow(clientY - btnCenterY, 2)
-      )
-
-      // If finger/cursor within 120px, RUN AWAY immediately
-      if (distance < 120) {
-        const pad = 10
-        const maxX = screenSize.w - btnW - pad
-        const maxY = screenSize.h - btnH - pad
-
-        // Move in opposite direction
-        const angle = Math.atan2(btnCenterY - clientY, btnCenterX - clientX)
-        const runDist = 150 + Math.random() * 150
-        let newX = btnCenterX + Math.cos(angle) * runDist - btnW / 2
-        let newY = btnCenterY + Math.sin(angle) * runDist - btnH / 2
-
-        // Keep within screen
-        newX = Math.max(pad, Math.min(maxX, newX))
-        newY = Math.max(pad, Math.min(maxY, newY))
-
-        setNoBtnPos({ x: newX, y: newY })
-        setNoBtnLabel(noBtnLabels[Math.floor(Math.random() * noBtnLabels.length)])
-        setAttemptCount(prev => prev + 1)
-
-        // Change sorry message every 3 attempts
-        setMessageIndex(prev => Math.min(prev + 1, sorryMessages.length - 1))
-      }
-    }
-
-    const handleTouch = (e: TouchEvent) => {
-      if (e.touches.length > 0) {
-        handlePointer(e.touches[0].clientX, e.touches[0].clientY)
-      }
-    }
-
-    const handleMouse = (e: MouseEvent) => {
-      handlePointer(e.clientX, e.clientY)
-    }
-
-    window.addEventListener('touchmove', handleTouch, { passive: true })
-    window.addEventListener('mousemove', handleMouse)
-
-    return () => {
-      window.removeEventListener('touchmove', handleTouch)
-      window.removeEventListener('mousemove', handleMouse)
-    }
-  }, [isButtonActivated, forgiven, noBtnPos, screenSize])
+  }, [screenSize])
 
   // Create floating emoji
   const createEmoji = useCallback((x: number, y: number, emoji?: string) => {
@@ -168,18 +92,11 @@ export default function Home() {
   const handleNoButtonFirstTouch = useCallback(() => {
     if (!isButtonActivated) {
       setIsButtonActivated(true)
-      // Move it to a random position on first touch
-      const pad = 20
-      const maxX = screenSize.w - 200
-      const maxY = screenSize.h - 70
-      setNoBtnPos({
-        x: pad + Math.random() * maxX,
-        y: pad + Math.random() * maxY,
-      })
+      setNoBtnPos(getRandomPos())
       setNoBtnLabel("Aha! Ab Pakad Ke Dikhao! 😏🏃‍♂️")
       setAttemptCount(1)
     }
-  }, [isButtonActivated, screenSize])
+  }, [isButtonActivated, getRandomPos])
 
   // Handle "Maf Kar Diya" - INSTANT CELEBRATION!
   const handleForgive = useCallback(() => {
@@ -594,29 +511,18 @@ export default function Home() {
           }}
           onClick={(e) => {
             e.preventDefault()
-            // Even if somehow clicked - just run away more!
-            const pad = 10
-            const maxX = screenSize.w - 200
-            const maxY = screenSize.h - 70
-            setNoBtnPos({
-              x: pad + Math.random() * maxX,
-              y: pad + Math.random() * maxY,
-            })
+            setNoBtnPos(getRandomPos())
             setNoBtnLabel("HAHA! Pakad Nahi Paya! 😂🏃‍♂️💨")
             setAttemptCount(prev => prev + 2)
+            setMessageIndex(prev => Math.min(prev + 1, sorryMessages.length - 1))
             createEmoji(e.clientX, e.clientY, '🏃‍♂️')
           }}
           onTouchStart={(e) => {
             e.preventDefault()
-            const pad = 10
-            const maxX = screenSize.w - 200
-            const maxY = screenSize.h - 70
-            setNoBtnPos({
-              x: pad + Math.random() * maxX,
-              y: pad + Math.random() * maxY,
-            })
+            setNoBtnPos(getRandomPos())
             setNoBtnLabel(noBtnLabels[Math.floor(Math.random() * noBtnLabels.length)])
             setAttemptCount(prev => prev + 1)
+            setMessageIndex(prev => Math.min(prev + 1, sorryMessages.length - 1))
           }}
         >
           <span className="flex items-center gap-1">
