@@ -66,17 +66,22 @@ export default function Home() {
   // Helper: get random position within screen for the runaway button
   // Avoids: top area (image + sorry text) AND bottom area (Maf Kar Diya button)
   const getRandomPos = useCallback(() => {
-    const pad = 15
+    const pad = 20
     const btnW = 200
     const btnH = 50
-    // Top 40% reserved for image + sorry message
-    const minY = screenSize.h * 0.40
-    // Bottom 90px reserved for Maf Kar Diya button
-    const maxY = screenSize.h - 90
+    // Top 42% reserved for image + sorry message
+    const minY = screenSize.h * 0.42
+    // Bottom 130px reserved for Maf Kar Diya button + spacing
+    const maxY = screenSize.h - 130
     const maxX = screenSize.w - btnW - pad
+
+    // Safety: if screen too small, at least give some space
+    const safeMinY = Math.min(minY, screenSize.h * 0.35)
+    const safeMaxY = Math.max(maxY, screenSize.h * 0.55)
+
     return {
-      x: pad + Math.random() * Math.max(maxX - pad, 50),
-      y: minY + Math.random() * Math.max(maxY - minY, 30),
+      x: pad + Math.random() * Math.max(maxX - pad, 30),
+      y: safeMinY + Math.random() * Math.max(safeMaxY - safeMinY, 30),
     }
   }, [screenSize])
 
@@ -551,7 +556,8 @@ export default function Home() {
       {/* Maf Kar Diya button remains accessible even after no button activated */}
       {!forgiven && isButtonActivated && (
         <motion.div
-          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2"
+          className="fixed bottom-0 left-0 right-0 z-40 flex justify-center pb-6 pt-4"
+          style={{ background: 'linear-gradient(to top, rgba(255,117,143,0.95) 0%, rgba(255,117,143,0.8) 60%, transparent 100%)' }}
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
