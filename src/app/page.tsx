@@ -36,23 +36,14 @@ export default function Home() {
   const [btnTranslate, setBtnTranslate] = useState({ x: 0, y: 0 })
   const [screenSize, setScreenSize] = useState({ w: 0, h: 0 })
   const [shakeScreen, setShakeScreen] = useState(false)
-  const [btnColorIndex, setBtnColorIndex] = useState(0)
+
   const [showMilestone, setShowMilestone] = useState('')
   const [touchedNoBtn, setTouchedNoBtn] = useState(false)
 
   const heartIdRef = useRef(0)
   const roamBoxRef = useRef<HTMLDivElement>(null)
 
-  const btnColors = [
-    'from-gray-500 to-gray-600',
-    'from-red-400 to-orange-500',
-    'from-amber-500 to-yellow-500',
-    'from-emerald-500 to-teal-500',
-    'from-cyan-500 to-blue-500',
-    'from-violet-500 to-purple-500',
-    'from-fuchsia-500 to-pink-500',
-    'from-rose-500 to-red-600',
-  ]
+  // Nahi Maf Karunga button always stays grey
 
   useEffect(() => {
     const updateSize = () => setScreenSize({ w: window.innerWidth, h: window.innerHeight })
@@ -97,7 +88,6 @@ export default function Home() {
   const handleRunawayClick = useCallback((clientX: number, clientY: number) => {
     moveBtnRandom()
     setAttemptCount(prev => prev + 1)
-    setBtnColorIndex(prev => (prev + 1) % btnColors.length)
     setMessageIndex(prev => Math.min(prev + 1, sorryMessages.length - 1))
     createEmoji(clientX, clientY, '🏃‍♂️')
     setShakeScreen(true)
@@ -401,7 +391,7 @@ export default function Home() {
               handleRunawayClick(touch.clientX, touch.clientY)
             }}
           >
-            <span className={`flex items-center gap-1 bg-gradient-to-r ${btnColors[btnColorIndex]} px-3 py-2 rounded-xl shadow-md`}>
+            <span className="flex items-center gap-1 bg-gradient-to-r from-gray-500 to-gray-600 px-3 py-2 rounded-xl shadow-md">
               {NO_BTN_TEXT}
             </span>
           </motion.button>
