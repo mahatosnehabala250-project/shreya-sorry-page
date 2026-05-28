@@ -259,7 +259,7 @@ export default function Home() {
         {/* Sorry message */}
         <AnimatePresence mode="wait">
           <motion.h1 key={forgiven ? 'f' : messageIndex}
-            className="text-base font-extrabold text-center text-rose-700 leading-tight mb-0.5"
+            className="text-lg font-extrabold text-center text-white leading-tight mb-0.5 drop-shadow-md"
             initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.9 }} transition={{ duration: 0.3 }}>
             {forgiven ? "Shreya Ne Maaf Kar Diya! 🎉" : sorryMessages[messageIndex]}
@@ -267,7 +267,7 @@ export default function Home() {
         </AnimatePresence>
 
         {!forgiven && (
-          <motion.p className="text-rose-600/60 text-center text-[11px]"
+          <motion.p className="text-white/90 text-center text-[11px] font-medium"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             Dil se sorry Shreya! Mujhe maaf kar do 🙏💕
           </motion.p>
@@ -279,7 +279,7 @@ export default function Home() {
             className="flex items-center gap-1.5 bg-white/40 backdrop-blur-sm rounded-full px-2.5 py-0.5 mt-1"
             initial={{ scale: 1.3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
             <Zap className="w-3 h-3 text-amber-500" />
-            <span className="text-rose-700 font-bold text-[11px]">
+            <span className="text-white font-bold text-[11px] drop-shadow-sm">
               {attemptCount < 5 ? `${attemptCount} koshish ❌`
                 : attemptCount < 10 ? `Level ${Math.floor(attemptCount / 2)} - ${attemptCount} try! 😂`
                 : attemptCount < 20 ? `Pro! ${attemptCount} tries! 🤣`
@@ -298,7 +298,7 @@ export default function Home() {
               animate={{ rotate: [0, -15, 15, -10, 10, 0], scale: [1, 1.3, 1] }}
               transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}>🎉</motion.div>
             <AnimatePresence mode="wait">
-              <motion.p key={praiseIndex} className="text-rose-600 text-center text-sm font-medium px-2"
+              <motion.p key={praiseIndex} className="text-white text-center text-sm font-medium px-2 drop-shadow-sm"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.5 }}>
                 {praiseMessages[praiseIndex]}
@@ -315,10 +315,10 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
               <div className="flex items-center gap-1 mb-1">
                 <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />
-                <span className="font-bold text-rose-700 text-[10px]">Shreya Ke Liye Special 💝</span>
+                <span className="font-bold text-rose-800 text-[10px]">Shreya Ke Liye Special 💝</span>
                 <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />
               </div>
-              <p className="text-rose-700 text-[11px] leading-relaxed">
+              <p className="text-rose-800 text-[11px] leading-relaxed font-medium">
                 Dear Shreya, 💕<br /><br />
                 Tum world ki sabse pyari insaan ho! Tumne maaf karke mujhe dubara jeene ka hak diya.
                 Main promise karta hoon ki aisi galti dubara nahi karunga.
@@ -358,7 +358,7 @@ export default function Home() {
             className="absolute top-1 left-0 right-0 text-center"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
           >
-            <span className="text-rose-400/30 text-[10px] font-medium tracking-wider uppercase">
+            <span className="text-white/40 text-[10px] font-medium tracking-wider uppercase">
               🏃 Pakad Ke Dikhao Zone 🏃
             </span>
           </motion.div>
@@ -401,7 +401,7 @@ export default function Home() {
             className="absolute bottom-1 left-0 right-0 text-center"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
           >
-            <span className="text-rose-400/25 text-[9px]">
+            <span className="text-white/50 text-[9px] font-medium">
               {attemptCount < 3 ? "👆 Try pakadne ka!" 
                 : attemptCount < 7 ? "😂 Ha ha nahi hoga!"
                 : attemptCount < 15 ? "🤣 Legend ban rahi hai!"
@@ -436,7 +436,7 @@ export default function Home() {
                 whileTap={{ scale: 0.95 }}>
                 Nahi Maf Karunga! 😤
               </motion.button>
-              <motion.p className="text-rose-400/50 text-[10px] text-center"
+              <motion.p className="text-white/70 text-[10px] text-center font-medium"
                 animate={{ opacity: [0.3, 0.7, 0.3] }} transition={{ duration: 3, repeat: Infinity }}>
                 Ek option choose karo... 😏
               </motion.p>
@@ -456,7 +456,7 @@ export default function Home() {
                 <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent"
                   animate={{ x: ['-100%', '200%'] }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }} />
               </motion.button>
-              <p className="text-rose-500/50 text-[10px] text-center">
+              <p className="text-white/70 text-[10px] text-center font-medium">
                 Sirf yahi button kaam karta hai! 😄
               </p>
             </motion.div>
@@ -466,7 +466,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="pb-2 pt-0.5 text-center w-full relative z-10 shrink-0">
-        <p className="text-rose-400/35 text-[9px]">
+        <p className="text-white/50 text-[9px] font-medium">
           Made with 💕 for Shreya
           {attemptCount > 0 && !forgiven && ` • ${attemptCount} failed attempts 🏃‍♂️`}
         </p>
