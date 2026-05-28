@@ -1,14 +1,13 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { motion, AnimatePresence, useMotionValue, useAnimate } from 'framer-motion'
-import { Heart, PartyPopper, Sparkles, Star, Crown } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Heart, Sparkles, Crown } from 'lucide-react'
 
 const sorryMessages = [
   "Shreya, I'm Really Sorry! 🥺",
-  "Please Maaf Kar Do Shreya! 😢",
+  "Please Maaf Kar Do! 😢",
   "I Promise I Won't Do It Again! 🙏",
-  "You're The Best Shreya, Please Forgive Me! 💕",
   "Sir Maaf Kardo Shreya! 🙇‍♂️",
   "Ab Toh Maaf Hi Kar Do! 😭",
   "Dil Se Sorry Shreya! 💖",
@@ -17,27 +16,16 @@ const sorryMessages = [
 const noBtnLabels = [
   "Nahi Maf Karunga! 😤",
   "Pakdi? Pakad Ke Dikhao! 😏",
-  "Aree Yahan Nahi! 🏃‍♂️",
+  "Ha Ha Nahi! 🏃‍♂️",
   "Idhar Udhar Mat Bhago! 😅",
-  "Ha Ha Pakad Nahi Paya! 😝",
+  "Pakad Nahi Paya! 😝",
   "Chor De Mujhe! 🏃💨",
   "Wapas Aa Raha Hu... NOT! 🤣",
-  "Shreya Maaf Kar De Yaar! 🥺",
+  "Maaf Kar De Yaar! 🥺",
   "Main Bhagta Rahoonga! 🏃‍♂️💨",
   "Tu Mujhe Kabhi Nahi Pakad Payegi! 😎",
   "Hehe Bhai Bhag! 🏃",
   "Mujhe Mat Pakad! 😱",
-  "Aukat Se Bahar! 💨",
-  "Sorry Bol Raha Hu... Par Bhag Bhi Raha Hu! 🏃‍♂️🙏",
-]
-
-const celebrationTexts = [
-  "Shreya Ne Maaf Kar Diya! 🎉",
-  "Tum Duniya Ki Sabse Pyari Ho! 🥰",
-  "I Love You Shreya! 💕",
-  "Best Shreya Ever! 👑",
-  "Meri Jaan Shreya! 💖",
-  "Shreya = Angel! 😇✨",
 ]
 
 const praiseMessages = [
@@ -58,124 +46,117 @@ export default function Home() {
   const [messageIndex, setMessageIndex] = useState(0)
   const [praiseIndex, setPraiseIndex] = useState(0)
   const [attemptCount, setAttemptCount] = useState(0)
-  const [showGlitch, setShowGlitch] = useState(false)
+  const [isButtonActivated, setIsButtonActivated] = useState(false)
+  const [noBtnPos, setNoBtnPos] = useState({ x: 0, y: 0 })
+  const [screenSize, setScreenSize] = useState({ w: 0, h: 0 })
 
   const containerRef = useRef<HTMLDivElement>(null)
   const heartIdRef = useRef(0)
-  const noBtnX = useMotionValue(typeof window !== 'undefined' ? window.innerWidth / 2 - 100 : 400)
-  const noBtnY = useMotionValue(typeof window !== 'undefined' ? window.innerHeight - 150 : 500)
-  const wanderIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const [scope, animate] = useAnimate()
+  const wanderTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Wandering No Button - moves continuously
+  // Get screen size
   useEffect(() => {
+    const updateSize = () => {
+      setScreenSize({ w: window.innerWidth, h: window.innerHeight })
+    }
+    updateSize()
+    window.addEventListener('resize', updateSize)
+    return () => window.removeEventListener('resize', updateSize)
+  }, [])
+
+  // Infinite wandering after activation
+  useEffect(() => {
+    if (!isButtonActivated || forgiven) return
+
     const wander = () => {
-      const padding = 80
-      const maxX = typeof window !== 'undefined' ? window.innerWidth - 220 : 800
-      const maxY = typeof window !== 'undefined' ? window.innerHeight - 80 : 600
+      const btnW = 180
+      const btnH = 50
+      const pad = 10
+      const maxX = screenSize.w - btnW - pad
+      const maxY = screenSize.h - btnH - pad
 
-      const newX = padding + Math.random() * (maxX - padding)
-      const newY = padding + Math.random() * (maxY - padding)
+      const newX = pad + Math.random() * maxX
+      const newY = pad + Math.random() * maxY
 
-      animate(scope.current, {
-        left: newX,
-        top: newY,
-        rotate: (Math.random() - 0.5) * 30,
-      }, {
-        type: 'spring',
-        stiffness: 150,
-        damping: 15,
-      })
+      setNoBtnPos({ x: newX, y: newY })
+      setNoBtnLabel(noBtnLabels[Math.floor(Math.random() * noBtnLabels.length)])
+
+      const nextDelay = 800 + Math.random() * 1200
+      wanderTimeoutRef.current = setTimeout(wander, nextDelay)
     }
 
-    // Wander every 1.5-3 seconds
-    const startWandering = () => {
-      wander()
-      const nextDelay = 1500 + Math.random() * 1500
-      wanderIntervalRef.current = setTimeout(() => {
-        startWandering()
-      }, nextDelay)
-    }
-
-    startWandering()
+    wander()
 
     return () => {
-      if (wanderIntervalRef.current) {
-        clearTimeout(wanderIntervalRef.current)
-      }
+      if (wanderTimeoutRef.current) clearTimeout(wanderTimeoutRef.current)
     }
-  }, [animate, scope])
+  }, [isButtonActivated, forgiven, screenSize])
 
-  // Track mouse globally and run away if cursor is near
+  // Touch/mouse proximity tracking for the runaway button
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (forgiven) return
+    if (!isButtonActivated || forgiven) return
 
-      const btnEl = scope.current
-      if (!btnEl) return
-
-      const rect = btnEl.getBoundingClientRect()
-      const btnCenterX = rect.left + rect.width / 2
-      const btnCenterY = rect.top + rect.height / 2
+    const handlePointer = (clientX: number, clientY: number) => {
+      const btnW = 180
+      const btnH = 50
+      const btnCenterX = noBtnPos.x + btnW / 2
+      const btnCenterY = noBtnPos.y + btnH / 2
 
       const distance = Math.sqrt(
-        Math.pow(e.clientX - btnCenterX, 2) + Math.pow(e.clientY - btnCenterY, 2)
+        Math.pow(clientX - btnCenterX, 2) + Math.pow(clientY - btnCenterY, 2)
       )
 
-      // If cursor is within 150px, RUN AWAY fast!
-      if (distance < 150) {
-        const padding = 80
-        const maxX = window.innerWidth - 220
-        const maxY = window.innerHeight - 80
+      // If finger/cursor within 120px, RUN AWAY immediately
+      if (distance < 120) {
+        const pad = 10
+        const maxX = screenSize.w - btnW - pad
+        const maxY = screenSize.h - btnH - pad
 
-        // Move in opposite direction from cursor
-        const angle = Math.atan2(btnCenterY - e.clientY, btnCenterX - e.clientX)
-        const runDistance = 200 + Math.random() * 200
-        let newX = btnCenterX + Math.cos(angle) * runDistance
-        let newY = btnCenterY + Math.sin(angle) * runDistance
+        // Move in opposite direction
+        const angle = Math.atan2(btnCenterY - clientY, btnCenterX - clientX)
+        const runDist = 150 + Math.random() * 150
+        let newX = btnCenterX + Math.cos(angle) * runDist - btnW / 2
+        let newY = btnCenterY + Math.sin(angle) * runDist - btnH / 2
 
-        // Keep within bounds
-        newX = Math.max(padding, Math.min(maxX, newX))
-        newY = Math.max(padding, Math.min(maxY, newY))
+        // Keep within screen
+        newX = Math.max(pad, Math.min(maxX, newX))
+        newY = Math.max(pad, Math.min(maxY, newY))
 
-        animate(btnEl, {
-          left: newX,
-          top: newY,
-          rotate: (Math.random() - 0.5) * 40,
-        }, {
-          type: 'spring',
-          stiffness: 500,
-          damping: 25,
-        })
-
+        setNoBtnPos({ x: newX, y: newY })
         setNoBtnLabel(noBtnLabels[Math.floor(Math.random() * noBtnLabels.length)])
         setAttemptCount(prev => prev + 1)
 
         // Change sorry message every 3 attempts
-        if (attemptCount > 0 && attemptCount % 3 === 0) {
-          setMessageIndex(prev => Math.min(prev + 1, sorryMessages.length - 1))
-        }
-
-        // Glitch effect when trying hard
-        if (attemptCount > 0 && attemptCount % 5 === 0) {
-          setShowGlitch(true)
-          setTimeout(() => setShowGlitch(false), 300)
-        }
+        setMessageIndex(prev => Math.min(prev + 1, sorryMessages.length - 1))
       }
     }
 
-    window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [forgiven, attemptCount, animate, scope])
+    const handleTouch = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        handlePointer(e.touches[0].clientX, e.touches[0].clientY)
+      }
+    }
 
-  // Create floating emoji/hearts
+    const handleMouse = (e: MouseEvent) => {
+      handlePointer(e.clientX, e.clientY)
+    }
+
+    window.addEventListener('touchmove', handleTouch, { passive: true })
+    window.addEventListener('mousemove', handleMouse)
+
+    return () => {
+      window.removeEventListener('touchmove', handleTouch)
+      window.removeEventListener('mousemove', handleMouse)
+    }
+  }, [isButtonActivated, forgiven, noBtnPos, screenSize])
+
+  // Create floating emoji
   const createEmoji = useCallback((x: number, y: number, emoji?: string) => {
     const id = heartIdRef.current++
-    const emojis = ['💕', '💖', '🌸', '✨', '🦋', '🌹', '💗', '💝', '🥰', '😇']
+    const emojis = ['💕', '💖', '🌸', '✨', '🦋', '🌹', '💗', '💝', '🥰', '😇', '🎊', '🎆']
     setHearts(prev => [...prev, {
       id,
-      x,
-      y,
+      x, y,
       emoji: emoji || emojis[Math.floor(Math.random() * emojis.length)]
     }])
     setTimeout(() => {
@@ -183,54 +164,66 @@ export default function Home() {
     }, 2500)
   }, [])
 
+  // Activate the runaway button on first touch/click attempt
+  const handleNoButtonFirstTouch = useCallback(() => {
+    if (!isButtonActivated) {
+      setIsButtonActivated(true)
+      // Move it to a random position on first touch
+      const pad = 20
+      const maxX = screenSize.w - 200
+      const maxY = screenSize.h - 70
+      setNoBtnPos({
+        x: pad + Math.random() * maxX,
+        y: pad + Math.random() * maxY,
+      })
+      setNoBtnLabel("Aha! Ab Pakad Ke Dikhao! 😏🏃‍♂️")
+      setAttemptCount(1)
+    }
+  }, [isButtonActivated, screenSize])
+
   // Handle "Maf Kar Diya" - INSTANT CELEBRATION!
   const handleForgive = useCallback(() => {
     setForgiven(true)
     setShowConfetti(true)
     setShowFireworks(true)
 
-    // Massive emoji burst from center
-    for (let i = 0; i < 30; i++) {
+    // Massive emoji burst
+    for (let i = 0; i < 25; i++) {
       setTimeout(() => {
         createEmoji(
-          Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 800),
-          Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 600)
+          Math.random() * screenSize.w,
+          Math.random() * screenSize.h
         )
       }, i * 80)
     }
 
-    // Cycle through praise messages
+    // Cycle praise messages
     let pIdx = 0
     const praiseInterval = setInterval(() => {
       pIdx = (pIdx + 1) % praiseMessages.length
       setPraiseIndex(pIdx)
     }, 3000)
 
-    // Stop confetti after 10s
+    // Stop effects
     setTimeout(() => {
       setShowConfetti(false)
       setShowFireworks(false)
     }, 10000)
 
-    // Keep cycling praise
     setTimeout(() => clearInterval(praiseInterval), 30000)
 
     // Periodic emoji rain
     const emojiRain = setInterval(() => {
       for (let i = 0; i < 3; i++) {
-        createEmoji(
-          Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 800),
-          -20
-        )
+        createEmoji(Math.random() * screenSize.w, -20)
       }
     }, 500)
-
     setTimeout(() => clearInterval(emojiRain), 15000)
-  }, [createEmoji])
+  }, [screenSize, createEmoji])
 
-  // Confetti particles - much more!
+  // Confetti
   const confettiColors = ['#ff6b9d', '#c44dff', '#ff4757', '#ffa502', '#2ed573', '#1e90ff', '#ff6348', '#ffd700', '#ff1493', '#00ff88']
-  const confettiParticles = Array.from({ length: 120 }, (_, i) => ({
+  const confettiParticles = Array.from({ length: 100 }, (_, i) => ({
     id: i,
     x: Math.random() * 100,
     color: confettiColors[i % confettiColors.length],
@@ -240,17 +233,16 @@ export default function Home() {
     isCircle: Math.random() > 0.5,
   }))
 
-  // Firework bursts
+  // Firework positions
   const fireworkPositions = [
-    { x: 20, y: 25 }, { x: 50, y: 15 }, { x: 80, y: 20 },
-    { x: 35, y: 35 }, { x: 65, y: 30 }, { x: 15, y: 40 },
-    { x: 85, y: 45 },
+    { x: 15, y: 20 }, { x: 50, y: 10 }, { x: 85, y: 18 },
+    { x: 30, y: 30 }, { x: 70, y: 25 },
   ]
 
   return (
     <div
       ref={containerRef}
-      className={`relative min-h-screen flex flex-col overflow-hidden ${showGlitch ? 'animate-pulse' : ''}`}
+      className="relative min-h-screen flex flex-col overflow-hidden select-none"
       style={{
         background: forgiven
           ? 'linear-gradient(135deg, #fce4ec 0%, #f8bbd0 25%, #f48fb1 50%, #ec407a 75%, #e91e63 100%)'
@@ -258,37 +250,33 @@ export default function Home() {
         transition: 'background 1s ease',
       }}
     >
-      {/* Animated Background Particles */}
+      {/* Background floating elements */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {Array.from({ length: 20 }).map((_, i) => (
+        {Array.from({ length: 12 }).map((_, i) => (
           <motion.div
             key={i}
             className="absolute"
             initial={{
-              x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+              x: Math.random() * screenSize.w,
               y: -50,
-              scale: 0.3 + Math.random() * 0.8,
+              scale: 0.3 + Math.random() * 0.6,
             }}
             animate={{
-              y: typeof window !== 'undefined' ? window.innerHeight + 100 : 1000,
-              rotate: [0, 360],
-              x: (i % 2 === 0 ? 1 : -1) * (50 + Math.random() * 100),
+              y: screenSize.h + 100,
+              rotate: 360,
+              x: (i % 2 === 0 ? 1 : -1) * (30 + Math.random() * 60),
             }}
             transition={{
-              duration: 10 + Math.random() * 15,
+              duration: 10 + Math.random() * 12,
               repeat: Infinity,
-              delay: Math.random() * 8,
+              delay: Math.random() * 6,
               ease: 'linear',
             }}
           >
-            {i % 3 === 0 ? (
-              <Heart className="w-6 h-6 text-pink-200/25 fill-pink-200/25" />
-            ) : i % 3 === 1 ? (
-              <Star className="w-5 h-5 text-rose-200/20 fill-rose-200/20" />
+            {i % 2 === 0 ? (
+              <Heart className="w-5 h-5 text-pink-200/20 fill-pink-200/20" />
             ) : (
-              <span className="text-lg opacity-20">
-                {['💕', '✨', '🌸', '💖'][i % 4]}
-              </span>
+              <span className="text-base opacity-20">✨</span>
             )}
           </motion.div>
         ))}
@@ -298,32 +286,22 @@ export default function Home() {
       <AnimatePresence>
         {showFireworks && fireworkPositions.map((pos, idx) => (
           <motion.div
-            key={`firework-${idx}`}
+            key={`fw-${idx}`}
             className="absolute pointer-events-none z-30"
             style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
             initial={{ scale: 0, opacity: 1 }}
-            animate={{
-              scale: [0, 3, 4],
-              opacity: [1, 0.8, 0],
-            }}
-            transition={{
-              duration: 1.5,
-              delay: idx * 0.3,
-              repeat: 3,
-              repeatDelay: 1,
-            }}
+            animate={{ scale: [0, 3, 4], opacity: [1, 0.8, 0] }}
+            transition={{ duration: 1.5, delay: idx * 0.3, repeat: 3, repeatDelay: 1 }}
           >
             <div className="relative">
               {Array.from({ length: 8 }).map((_, j) => (
                 <motion.div
                   key={j}
                   className="absolute w-2 h-2 rounded-full"
-                  style={{
-                    backgroundColor: confettiColors[(idx + j) % confettiColors.length],
-                  }}
+                  style={{ backgroundColor: confettiColors[(idx + j) % confettiColors.length] }}
                   animate={{
-                    x: Math.cos((j / 8) * Math.PI * 2) * 60,
-                    y: Math.sin((j / 8) * Math.PI * 2) * 60,
+                    x: Math.cos((j / 8) * Math.PI * 2) * 50,
+                    y: Math.sin((j / 8) * Math.PI * 2) * 50,
                   }}
                   transition={{ duration: 1, delay: idx * 0.3 }}
                 />
@@ -333,16 +311,16 @@ export default function Home() {
         ))}
       </AnimatePresence>
 
-      {/* Emoji/Hearts on events */}
+      {/* Emoji popups */}
       <AnimatePresence>
         {hearts.map(heart => (
           <motion.div
             key={heart.id}
-            className="fixed pointer-events-none z-50 text-3xl"
+            className="fixed pointer-events-none z-50 text-2xl"
             initial={{ x: heart.x, y: heart.y, scale: 0, opacity: 1 }}
-            animate={{ y: heart.y - 200, scale: 1.5, opacity: 0, rotate: Math.random() * 360 }}
+            animate={{ y: heart.y - 180, scale: 1.3, opacity: 0, rotate: Math.random() * 360 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 2.5, ease: 'easeOut' }}
+            transition={{ duration: 2, ease: 'easeOut' }}
           >
             {heart.emoji}
           </motion.div>
@@ -364,66 +342,54 @@ export default function Home() {
             }}
             initial={{ y: -30, opacity: 1, rotate: 0 }}
             animate={{
-              y: typeof window !== 'undefined' ? window.innerHeight + 80 : 1200,
+              y: screenSize.h + 80,
               opacity: [1, 1, 0.5, 0],
               rotate: 720 * (Math.random() > 0.5 ? 1 : -1),
-              x: (Math.random() - 0.5) * 300,
+              x: (Math.random() - 0.5) * 250,
             }}
-            transition={{
-              duration: p.duration,
-              delay: p.delay,
-              ease: 'easeIn',
-            }}
+            transition={{ duration: p.duration, delay: p.delay, ease: 'easeIn' }}
           />
         ))}
       </AnimatePresence>
 
-      {/* Main Content */}
-      <motion.div
-        className="relative z-10 flex flex-col items-center gap-5 px-4 max-w-lg w-full pt-8 sm:pt-12"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-      >
-        {/* Sorry Image */}
-        <motion.div className="relative" animate={forgiven ? { scale: [1, 1.15, 1] } : {}}>
+      {/* ========== MAIN CONTENT ========== */}
+      <div className="relative z-10 flex flex-col items-center justify-center flex-1 px-5 py-6">
+        {/* Image */}
+        <motion.div className="relative mb-4" animate={forgiven ? { scale: [1, 1.12, 1] } : {}}>
           <motion.div
-            animate={!forgiven ? { y: [0, -10, 0] } : {}}
+            animate={!forgiven ? { y: [0, -8, 0] } : {}}
             transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
           >
             <div className="relative">
-              <motion.img
+              <img
                 src="/sorry-image.png"
                 alt="Sorry Shreya"
-                className="w-36 h-36 sm:w-48 sm:h-48 rounded-full object-cover shadow-2xl border-4 border-white/70"
+                className="w-28 h-28 rounded-full object-cover shadow-xl border-4 border-white/70"
               />
-              {/* Glowing ring */}
               <motion.div
-                className="absolute inset-0 rounded-full border-2 border-pink-300/50"
-                animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
+                className="absolute inset-0 rounded-full border-2 border-pink-300/40"
+                animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
                 transition={{ duration: 2, repeat: Infinity }}
               />
             </div>
           </motion.div>
-
           {!forgiven && (
             <motion.div
-              className="absolute -top-3 -right-3"
+              className="absolute -top-1 -right-1"
               animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             >
-              <Sparkles className="w-8 h-8 text-yellow-400 drop-shadow-lg" />
+              <Sparkles className="w-6 h-6 text-yellow-400" />
             </motion.div>
           )}
-
           {forgiven && (
             <motion.div
-              className="absolute -top-4 -right-4"
+              className="absolute -top-2 -right-2"
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: 'spring', stiffness: 200 }}
             >
-              <Crown className="w-10 h-10 text-yellow-400 drop-shadow-lg" />
+              <Crown className="w-8 h-8 text-yellow-400" />
             </motion.div>
           )}
         </motion.div>
@@ -432,81 +398,67 @@ export default function Home() {
         <AnimatePresence mode="wait">
           <motion.h1
             key={forgiven ? 'forgiven' : messageIndex}
-            className="text-2xl sm:text-4xl font-extrabold text-center text-rose-700 drop-shadow-sm leading-tight"
-            initial={{ opacity: 0, y: 20, scale: 0.8 }}
+            className="text-xl font-extrabold text-center text-rose-700 leading-tight mb-2"
+            initial={{ opacity: 0, y: 15, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.8 }}
-            transition={{ duration: 0.5, type: 'spring' }}
+            exit={{ opacity: 0, y: -15, scale: 0.9 }}
+            transition={{ duration: 0.4 }}
           >
-            {forgiven ? celebrationTexts[0] : sorryMessages[messageIndex]}
+            {forgiven ? "Shreya Ne Maaf Kar Diya! 🎉" : sorryMessages[messageIndex]}
           </motion.h1>
         </AnimatePresence>
 
         {/* Sub message */}
         {!forgiven && (
           <motion.p
-            className="text-rose-600/80 text-center text-sm sm:text-base"
+            className="text-rose-600/70 text-center text-sm mb-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
           >
-            Shreya, dil se sorry! Mujhe maaf kar do please 🙏💕
+            Dil se sorry Shreya! Mujhe maaf kar do 🙏💕
           </motion.p>
         )}
 
-        {/* Attempt counter - funny */}
-        {!forgiven && attemptCount > 0 && (
+        {/* Attempt counter */}
+        {!forgiven && isButtonActivated && attemptCount > 0 && (
           <motion.div
             key={attemptCount}
-            className="bg-white/30 backdrop-blur-sm rounded-full px-4 py-2"
-            initial={{ scale: 1.5, opacity: 0 }}
+            className="bg-white/30 backdrop-blur-sm rounded-full px-3 py-1.5 mb-3"
+            initial={{ scale: 1.3, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
           >
-            <span className="text-rose-700 font-semibold text-sm">
+            <span className="text-rose-700 font-semibold text-xs">
               {attemptCount < 3
                 ? `Pakadne ki koshish: ${attemptCount} ❌`
                 : attemptCount < 6
-                ? `${attemptCount} baar try kiya, pakad nahi paya! 😂`
+                ? `${attemptCount} baar try! Pakad nahi paya! 😂`
                 : attemptCount < 10
                 ? `${attemptCount} attempts! Give up kar! 🤣`
-                : `${attemptCount} attempts!! Shreya maaf kar de usko! 😭😂`}
+                : `${attemptCount} attempts!! Maaf hi kar de! 😭😂`}
             </span>
           </motion.div>
         )}
 
-        {/* ====== FORGIVEN STATE - MASSIVE CELEBRATION ====== */}
+        {/* ====== FORGIVEN CELEBRATION ====== */}
         {forgiven && (
           <motion.div
-            className="flex flex-col items-center gap-4"
+            className="flex flex-col items-center gap-3"
             initial={{ opacity: 0, scale: 0.3 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: 'spring', stiffness: 150, damping: 12 }}
           >
-            {/* Big celebration emoji */}
             <motion.div
-              className="text-5xl sm:text-7xl"
-              animate={{
-                rotate: [0, -15, 15, -10, 10, 0],
-                scale: [1, 1.3, 1, 1.2, 1],
-              }}
+              className="text-5xl"
+              animate={{ rotate: [0, -15, 15, -10, 10, 0], scale: [1, 1.3, 1] }}
               transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
             >
               🎉
             </motion.div>
 
-            <motion.h2
-              className="text-3xl sm:text-5xl font-black text-rose-700 text-center"
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              Shreya Ne Maaf Kar Diya!
-            </motion.h2>
-
-            {/* Rotating praise messages */}
             <AnimatePresence mode="wait">
               <motion.p
                 key={praiseIndex}
-                className="text-rose-600 text-center text-lg sm:text-xl font-medium"
+                className="text-rose-600 text-center text-base font-medium"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -516,9 +468,9 @@ export default function Home() {
               </motion.p>
             </AnimatePresence>
 
-            {/* Bouncing emoji row */}
+            {/* Bouncing emoji */}
             <motion.div
-              className="flex gap-3 mt-2"
+              className="flex gap-2 mt-1"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
@@ -526,201 +478,196 @@ export default function Home() {
               {['🥰', '💕', '👑', '💖', '🦋', '🌹', '✨'].map((emoji, i) => (
                 <motion.span
                   key={i}
-                  className="text-3xl sm:text-4xl"
-                  animate={{
-                    y: [0, -15, 0],
-                    rotate: [0, 10, -10, 0],
-                  }}
-                  transition={{
-                    duration: 1.2,
-                    delay: i * 0.15,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  }}
+                  className="text-2xl"
+                  animate={{ y: [0, -12, 0], rotate: [0, 8, -8, 0] }}
+                  transition={{ duration: 1.2, delay: i * 0.12, repeat: Infinity, ease: 'easeInOut' }}
                 >
                   {emoji}
                 </motion.span>
               ))}
             </motion.div>
 
-            {/* Love letter animation */}
+            {/* Love Letter */}
             <motion.div
-              className="mt-4 bg-white/40 backdrop-blur-md rounded-2xl p-5 sm:p-6 max-w-sm w-full border border-white/50 shadow-xl"
-              initial={{ opacity: 0, y: 30 }}
+              className="mt-3 bg-white/40 backdrop-blur-md rounded-2xl p-4 max-w-xs w-full border border-white/50 shadow-xl"
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1, duration: 0.8 }}
+              transition={{ delay: 0.8, duration: 0.6 }}
             >
-              <div className="flex items-center gap-2 mb-3">
-                <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
-                <span className="font-bold text-rose-700">Shreya Ke Liye Special Message</span>
-                <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
+              <div className="flex items-center gap-1.5 mb-2">
+                <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
+                <span className="font-bold text-rose-700 text-sm">Shreya Ke Liye</span>
+                <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
               </div>
-              <p className="text-rose-700 text-sm sm:text-base leading-relaxed">
+              <p className="text-rose-700 text-xs leading-relaxed">
                 Dear Shreya, 💕<br /><br />
                 Tum world ki sabse pyari insaan ho! Tumne maaf karke mujhe dubara jeene ka hak diya.
                 Main promise karta hoon ki aisi galti dubara nahi karunga.
                 Tumhare bina meri duniya adhoori hai! 🌸<br /><br />
                 Forever grateful, 🙏💖
-                Your Sorry Person
               </p>
             </motion.div>
 
-            {/* Click for more hearts */}
             <motion.button
               onClick={(e) => {
-                for (let i = 0; i < 10; i++) {
+                for (let i = 0; i < 8; i++) {
                   setTimeout(() => {
                     createEmoji(
-                      e.clientX + (Math.random() - 0.5) * 200,
-                      e.clientY + (Math.random() - 0.5) * 200
+                      e.clientX + (Math.random() - 0.5) * 150,
+                      e.clientY + (Math.random() - 0.5) * 150
                     )
                   }, i * 50)
                 }
               }}
-              className="mt-2 px-6 py-3 bg-white/30 backdrop-blur-sm rounded-full text-rose-700 font-semibold hover:bg-white/50 transition-all cursor-pointer border border-white/40"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              className="mt-2 px-5 py-2.5 bg-white/30 backdrop-blur-sm rounded-full text-rose-700 font-semibold text-sm hover:bg-white/50 transition-all cursor-pointer border border-white/40"
+              whileTap={{ scale: 0.9 }}
             >
-              More Love Click Karo 💕
+              More Love 💕
             </motion.button>
           </motion.div>
         )}
 
-        {/* ====== MAF KAR DIYA BUTTON - Before forgiveness ====== */}
-        {!forgiven && (
-          <motion.button
-            onClick={handleForgive}
-            className="relative px-10 py-5 bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 text-white font-extrabold text-xl rounded-3xl shadow-2xl shadow-pink-500/40 hover:shadow-pink-500/60 active:scale-95 transition-all cursor-pointer mt-2"
-            whileHover={{
-              scale: 1.08,
-              boxShadow: '0 20px 60px rgba(236, 64, 122, 0.5)',
-            }}
-            whileTap={{ scale: 0.92 }}
+        {/* ====== BUTTONS (Not Forgiven) ====== */}
+        {!forgiven && !isButtonActivated && (
+          <motion.div
+            className="flex flex-col items-center gap-3 w-full mt-2"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
+            transition={{ delay: 0.4 }}
           >
-            <span className="flex items-center justify-center gap-2">
-              <Heart className="w-6 h-6 fill-white animate-pulse" />
-              Maf Kar Diya 💕
-              <Heart className="w-6 h-6 fill-white animate-pulse" />
-            </span>
-            {/* Shimmer effect */}
-            <motion.div
-              className="absolute inset-0 rounded-3xl bg-gradient-to-r from-transparent via-white/25 to-transparent"
-              animate={{ x: ['-100%', '200%'] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-            />
-          </motion.button>
+            {/* Maf Kar Diya */}
+            <motion.button
+              onClick={handleForgive}
+              className="w-full max-w-xs px-6 py-4 bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 text-white font-extrabold text-lg rounded-2xl shadow-xl shadow-pink-500/30 cursor-pointer relative overflow-hidden"
+              whileTap={{ scale: 0.92 }}
+            >
+              <span className="flex items-center justify-center gap-2 relative z-10">
+                <Heart className="w-5 h-5 fill-white" />
+                Maf Kar Diya 💕
+              </span>
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                animate={{ x: ['-100%', '200%'] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+              />
+            </motion.button>
+
+            {/* Nahi Maf Karunga - STEADY, below Maf Kar Diya */}
+            <button
+              onClick={handleNoButtonFirstTouch}
+              onTouchStart={(e) => {
+                e.preventDefault()
+                handleNoButtonFirstTouch()
+              }}
+              className="w-full max-w-xs px-6 py-4 bg-gradient-to-r from-gray-400 to-gray-500 text-white font-bold text-lg rounded-2xl shadow-lg cursor-pointer select-none"
+            >
+              Nahi Maf Karunga! 😤
+            </button>
+          </motion.div>
         )}
 
-        {/* Hint text */}
-        {!forgiven && (
+        {/* Hint when buttons are steady */}
+        {!forgiven && !isButtonActivated && (
           <motion.p
-            className="text-rose-400/60 text-xs text-center mt-1"
-            animate={{ opacity: [0.3, 0.8, 0.3] }}
+            className="text-rose-400/50 text-xs text-center mt-3"
+            animate={{ opacity: [0.3, 0.7, 0.3] }}
             transition={{ duration: 3, repeat: Infinity }}
           >
-            💡 &quot;Nahi Maf Karunga&quot ko pakadne ki koshish mat kar... 🏃‍♂️💨
+            Ek option choose karo... 😏
           </motion.p>
         )}
-      </motion.div>
+      </div>
 
-      {/* ====== THE RUNAWAY "NAHI MAF KARUNGA" BUTTON ====== */}
-      {!forgiven && (
+      {/* ====== RUNAWAY BUTTON (after activation) ====== */}
+      {!forgiven && isButtonActivated && (
         <motion.button
-          ref={scope}
-          className="fixed z-20 px-6 py-3 bg-gradient-to-r from-slate-500 via-gray-500 to-slate-600 text-white font-bold text-base rounded-2xl shadow-xl cursor-pointer select-none whitespace-nowrap border-2 border-gray-400/50"
-          style={{
-            touchAction: 'none',
-            left: typeof window !== 'undefined' ? window.innerWidth / 2 - 100 : 400,
-            top: typeof window !== 'undefined' ? window.innerHeight - 150 : 500,
+          className="fixed z-50 px-4 py-3 bg-gradient-to-r from-gray-500 to-gray-600 text-white font-bold text-sm rounded-2xl shadow-xl cursor-pointer select-none whitespace-nowrap border border-gray-400/50"
+          animate={{
+            left: noBtnPos.x,
+            top: noBtnPos.y,
+            rotate: (Math.random() - 0.5) * 20,
           }}
-          onMouseEnter={() => {
-            // Extra dodge on hover just in case
-            const padding = 80
-            const maxX = window.innerWidth - 220
-            const maxY = window.innerHeight - 80
-            const newX = padding + Math.random() * (maxX - padding)
-            const newY = padding + Math.random() * (maxY - padding)
-            animate(scope.current, {
-              left: newX,
-              top: newY,
-              rotate: (Math.random() - 0.5) * 45,
-            }, {
-              type: 'spring',
-              stiffness: 600,
-              damping: 20,
-            })
-            setNoBtnLabel(noBtnLabels[Math.floor(Math.random() * noBtnLabels.length)])
-            setAttemptCount(prev => prev + 1)
+          transition={{
+            type: 'spring',
+            stiffness: 400,
+            damping: 25,
           }}
           onClick={(e) => {
             e.preventDefault()
-            // Even if somehow clicked, it just runs away!
-            const padding = 80
-            const maxX = window.innerWidth - 220
-            const maxY = window.innerHeight - 80
-            const newX = padding + Math.random() * (maxX - padding)
-            const newY = padding + Math.random() * (maxY - padding)
-            animate(scope.current, {
-              left: newX,
-              top: newY,
-              rotate: (Math.random() - 0.5) * 60,
-            }, {
-              type: 'spring',
-              stiffness: 800,
-              damping: 15,
+            // Even if somehow clicked - just run away more!
+            const pad = 10
+            const maxX = screenSize.w - 200
+            const maxY = screenSize.h - 70
+            setNoBtnPos({
+              x: pad + Math.random() * maxX,
+              y: pad + Math.random() * maxY,
             })
             setNoBtnLabel("HAHA! Pakad Nahi Paya! 😂🏃‍♂️💨")
-            setAttemptCount(prev => prev + 3)
+            setAttemptCount(prev => prev + 2)
             createEmoji(e.clientX, e.clientY, '🏃‍♂️')
           }}
           onTouchStart={(e) => {
             e.preventDefault()
-            const padding = 80
-            const maxX = window.innerWidth - 220
-            const maxY = window.innerHeight - 80
-            const newX = padding + Math.random() * (maxX - padding)
-            const newY = padding + Math.random() * (maxY - padding)
-            animate(scope.current, {
-              left: newX,
-              top: newY,
-              rotate: (Math.random() - 0.5) * 45,
-            }, {
-              type: 'spring',
-              stiffness: 600,
-              damping: 20,
+            const pad = 10
+            const maxX = screenSize.w - 200
+            const maxY = screenSize.h - 70
+            setNoBtnPos({
+              x: pad + Math.random() * maxX,
+              y: pad + Math.random() * maxY,
             })
             setNoBtnLabel(noBtnLabels[Math.floor(Math.random() * noBtnLabels.length)])
             setAttemptCount(prev => prev + 1)
           }}
         >
-          <motion.span
-            animate={{ rotate: [0, (Math.random() - 0.5) * 10, 0] }}
-            transition={{ duration: 0.3 }}
-            className="flex items-center gap-1"
-          >
+          <span className="flex items-center gap-1">
             {noBtnLabel}
-          </motion.span>
-          {/* Trail effect dots */}
+          </span>
+          {/* Speed trails */}
           <motion.div
-            className="absolute -right-2 -top-2 w-3 h-3 bg-red-400 rounded-full"
+            className="absolute -right-1 -top-1 w-2 h-2 bg-red-400 rounded-full"
             animate={{ scale: [0, 1, 0], opacity: [1, 0.5, 0] }}
-            transition={{ duration: 0.5, repeat: Infinity }}
+            transition={{ duration: 0.4, repeat: Infinity }}
           />
           <motion.div
-            className="absolute -left-2 -bottom-2 w-2 h-2 bg-orange-400 rounded-full"
+            className="absolute -left-1 -bottom-1 w-2 h-2 bg-orange-400 rounded-full"
             animate={{ scale: [0, 1, 0], opacity: [1, 0.5, 0] }}
-            transition={{ duration: 0.5, repeat: Infinity, delay: 0.25 }}
+            transition={{ duration: 0.4, repeat: Infinity, delay: 0.2 }}
           />
         </motion.button>
       )}
 
+      {/* Maf Kar Diya button remains accessible even after no button activated */}
+      {!forgiven && isButtonActivated && (
+        <motion.div
+          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2"
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <motion.button
+            onClick={handleForgive}
+            className="px-8 py-4 bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 text-white font-extrabold text-lg rounded-2xl shadow-2xl shadow-pink-500/40 cursor-pointer relative overflow-hidden"
+            whileTap={{ scale: 0.92 }}
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          >
+            <span className="flex items-center justify-center gap-2 relative z-10">
+              <Heart className="w-5 h-5 fill-white" />
+              Maf Kar Diya 💕
+            </span>
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent"
+              animate={{ x: ['-100%', '200%'] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+            />
+          </motion.button>
+        </motion.div>
+      )}
+
       {/* Footer */}
-      <footer className="mt-auto pb-4 pt-2 text-center w-full relative z-10">
-        <p className="text-rose-400/50 text-xs">
-          Made with 💕 for Shreya {forgiven ? '| Maaf Kar Diya! 🎉' : '| Please Maaf Kar Do 🙏'}
+      <footer className="pb-4 pt-2 text-center w-full relative z-10">
+        <p className="text-rose-400/40 text-xs">
+          Made with 💕 for Shreya
         </p>
       </footer>
     </div>
