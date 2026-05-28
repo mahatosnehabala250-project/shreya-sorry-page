@@ -57,15 +57,27 @@ export default function Home() {
     if (!box) return
     const boxW = box.clientWidth
     const boxH = box.clientHeight
+    if (boxW < 10 || boxH < 10) return
     const btnW = 160
     const btnH = 38
-    const sizeFactor = Math.max(0.6, 1 - attemptCount * 0.02)
-    const maxX = Math.max(0, boxW - btnW * sizeFactor)
-    const maxY = Math.max(0, boxH - btnH * sizeFactor)
-    const newX = Math.random() * maxX
-    const newY = Math.random() * maxY
+    const padding = 8
+    const maxX = Math.max(padding, boxW - btnW - padding)
+    const maxY = Math.max(padding, boxH - btnH - padding)
+    // Ensure button moves to a clearly different position
+    let newX = Math.random() * maxX
+    let newY = Math.random() * maxY
+    const minDistance = 40
+    let attempts = 0
+    while (attempts < 10) {
+      const dx = newX - btnTranslate.x
+      const dy = newY - btnTranslate.y
+      if (Math.sqrt(dx * dx + dy * dy) >= minDistance) break
+      newX = Math.random() * maxX
+      newY = Math.random() * maxY
+      attempts++
+    }
     setBtnTranslate({ x: newX, y: newY })
-  }, [attemptCount])
+  }, [btnTranslate.x, btnTranslate.y])
 
   const createEmoji = useCallback((x: number, y: number, emoji?: string) => {
     const id = heartIdRef.current++
@@ -121,7 +133,7 @@ export default function Home() {
     setTimeout(() => clearInterval(er), 15000)
   }, [screenSize, createEmoji])
 
-  const btnScale = Math.max(0.6, 1 - attemptCount * 0.02)
+  const btnScale = 1
 
   const confettiColors = ['#ff6b9d', '#c44dff', '#ff4757', '#ffa502', '#2ed573', '#1e90ff', '#ff6348', '#ffd700', '#ff1493', '#00ff88']
   const confettiParticles = Array.from({ length: 100 }, (_, i) => ({
@@ -381,8 +393,9 @@ export default function Home() {
             }}
             transition={{
               type: 'spring',
-              stiffness: 400 + attemptCount * 15,
-              damping: 20,
+              stiffness: 300,
+              damping: 25,
+              mass: 0.8,
             }}
             onClick={(e) => {
               e.preventDefault()
